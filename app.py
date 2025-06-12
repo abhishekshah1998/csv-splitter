@@ -22,7 +22,7 @@ if uploaded_file:
         df = pd.read_csv(uploaded_file)
 
     total_rows = len(df)
-    chunk_size = 99999
+    chunk_size = 9999
     num_chunks = math.ceil(total_rows / chunk_size)
 
     st.success(f"✅ Successfully loaded `{file_name}` with **{total_rows} rows**.")
