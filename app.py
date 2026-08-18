@@ -1,54 +1,47 @@
-import streamlit as st
+from pathlib import Path
+
 import pandas as pd
-import math
-import os
-from io import BytesIO
+import streamlit as st
 
-st.set_page_config(page_title="CSV Splitter", layout="centered")
-st.title("📄 CSV Splitter (10,000 rows per file)")
+from csv_splitter import create_zip, split_dataframe
 
-st.markdown("""
-Upload a CSV file, and we'll split it into multiple CSV files, 
-each with **up to 10,000 rows (header + 9,999 records)**.
-""")
 
-uploaded_file = st.file_uploader("🔼 Upload your CSV file", type="csv")
+st.set_page_config(page_title="CSV Splitter", page_icon="✂️")
+st.title("CSV Splitter")
+st.write(
+    "Split a large CSV into upload-ready files while preserving the header in every part."
+)
+
+max_rows_per_file = st.number_input(
+    "Maximum rows per output file, including the header",
+    min_value=2,
+    max_value=1_000_000,
+    value=10_000,
+    step=1_000,
+)
+uploaded_file = st.file_uploader("Upload CSV", type="csv")
 
 if uploaded_file:
-    file_name = uploaded_file.name
-    base_name, _ = os.path.splitext(file_name)
+    try:
+        with st.spinner("Reading and splitting the file..."):
+            dataframe = pd.read_csv(uploaded_file)
+            base_name = Path(uploaded_file.name).stem
+            chunks = split_dataframe(dataframe, int(max_rows_per_file))
+            archive = create_zip(chunks, base_name)
 
-    with st.spinner("Reading your CSV file..."):
-        df = pd.read_csv(uploaded_file)
+        st.success(
+            f"Prepared {len(chunks)} file{'s' if len(chunks) != 1 else ''} "
+            f"from {len(dataframe):,} data rows."
+        )
+        st.download_button(
+            "Download all parts as ZIP",
+            data=archive,
+            file_name=f"{base_name}_parts.zip",
+            mime="application/zip",
+        )
 
-    total_rows = len(df)
-    chunk_size = 9999
-    num_chunks = math.ceil(total_rows / chunk_size)
-
-    st.success(f"✅ Successfully loaded `{file_name}` with **{total_rows} rows**.")
-    st.info(f"Splitting into **{num_chunks} files** with up to **10,000 rows each** (including header).")
-
-    chunks = []
-    for i in range(num_chunks):
-        start_row = i * chunk_size
-        end_row = start_row + chunk_size
-        chunk_df = df.iloc[start_row:end_row]
-
-        buffer = BytesIO()
-        chunk_df.to_csv(buffer, index=False)
-        buffer.seek(0)
-
-        chunk_filename = f"{base_name}_part_{i+1}.csv"
-        chunks.append((chunk_filename, buffer))
-
-    with st.expander("📂 Download Your Chunks"):
-        for chunk_filename, buffer in chunks:
-            st.download_button(
-                label=f"⬇️ Download {chunk_filename}",
-                data=buffer,
-                file_name=chunk_filename,
-                mime="text/csv"
-            )
-
-    st.success("🎉 All chunks are ready! Download them above.")
-
+        with st.expander("Preview output plan"):
+            for index, chunk in enumerate(chunks, start=1):
+                st.write(f"Part {index}: {len(chunk):,} data rows")
+    except (pd.errors.ParserError, UnicodeDecodeError, ValueError) as error:
+        st.error(f"This file could not be processed: {error}")
