@@ -1,5 +1,7 @@
 # CSV Splitter
 
+[![Test](https://github.com/abhishekshah1998/csv-splitter/actions/workflows/test.yml/badge.svg)](https://github.com/abhishekshah1998/csv-splitter/actions/workflows/test.yml)
+
 A small Streamlit utility that splits a CSV into upload-ready chunks while preserving the header in every output file.
 
 ## The problem
