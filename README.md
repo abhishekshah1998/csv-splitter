@@ -20,6 +20,8 @@ CSV Splitter turns that constraint into a simple self-serve workflow:
 - Header preservation in every output
 - Predictable filenames such as `orders_part_1.csv`
 - Individual downloads generated in memory
+- Tested boundary handling, including empty files and exact row limits
+- Continuous tests on pushes and pull requests
 
 ## Run locally
 
@@ -34,7 +36,13 @@ Then open the local address printed by Streamlit.
 
 ## Implementation
 
-The app uses Streamlit for the interface and pandas for parsing, slicing, and exporting CSV data. Uploaded data and generated chunks are held in memory; the current implementation does not write them to local disk.
+The app uses Streamlit for the interface and pandas for parsing, slicing, and exporting CSV data. The splitting logic is isolated in `csv_splitter.py` so boundary behavior can be tested independently from the UI. Uploaded data and generated chunks are held in memory; the current implementation does not write them to local disk.
+
+## Test
+
+```bash
+python -m unittest discover -s tests -v
+```
 
 ## Current limitations
 
